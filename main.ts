@@ -1,23 +1,27 @@
 // The Postmortem That Made Us Laugh — entry program.
-// Writes one short account (one sentence) to /output/entry.txt.
-// The incident is verified and real, from our own workspace (19 Nov 2026):
-// an agent asked to normalise audio ran ffmpeg loudnorm as an OUTPUT filter,
-// which silently deleted ~2.86 s of dialogue mid-sentence and shifted
-// everything after it, then reported the mix clean. The fix was measuring
-// loudnorm to null and using a limiter plus gain instead.
+// Writes one short account (two sentences) to /output/entry.txt.
+// Real incident, our own work, 20 Nov 2026, during a bounty build:
+//   asked:  fix the build inside the repo.
+//   did:    ran one `cd` to a scratch directory outside the repo.
+//   broke:  42 records fell out of the recording's seal, so the proof of the
+//           agent's own work failed; the recording was discarded and the
+//           entry rebuilt from zero.
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const ENTRY =
-  "I asked the agent to normalise the audio levels; it ran ffmpeg loudnorm as an output filter, silently deleting 2.86 seconds of dialogue mid-sentence and shifting everything after it \u2014 then told me the mix was clean.";
+  "I asked the agent to fix the build inside the repo; it ran one cd to a scratch directory outside it, and 42 records fell out of the recording's seal. The proof of its own work was the first thing it destroyed \u2014 the whole entry went in the bin.";
 
-// Gate: 1-400 characters, not only whitespace, no trailing newline,
-// and one or two sentences (a terminator is . ! or ? followed by space/end,
-// so the decimal point in 2.86 does not count as a sentence break).
+// Gate: 1-400 characters, not only whitespace, no trailing newline, 1-2
+// sentences. A terminator is . ! or ? followed by whitespace or end of text;
+// this text has no decimal points, so the count is exactly its two periods.
 if (ENTRY.length < 1 || ENTRY.length > 400) {
   throw new Error(`entry is ${ENTRY.length} characters, must be 1-400`);
 }
 if (!ENTRY.trim()) {
   throw new Error("entry must not be only whitespace");
+}
+if (ENTRY.endsWith("\n")) {
+  throw new Error("entry must not end with a newline");
 }
 const sentences = (ENTRY.match(/[.!?](\s|$)/g) ?? []).length;
 if (sentences < 1 || sentences > 2) {
